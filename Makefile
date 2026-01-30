@@ -240,13 +240,13 @@ provision:
 .PHONY: stop
 stop:
 	@echo "Parando instância EC2..."
-	@TF_VAR_aws_region=$(AWS_REGION) terraform -chdir=infrastructure apply -auto-approve -var="instance_state=stopped" -lock=false
+	TF_VAR_aws_region=$(AWS_REGION) terraform -chdir=infrastructure apply -auto-approve -var="instance_state=stopped" -lock=false
 	@echo "✓ Instância EC2 parada"
 
 .PHONY: start
 start:
 	@echo "Iniciando instância EC2..."
-	@TF_VAR_aws_region=$(AWS_REGION) terraform -chdir=infrastructure apply -auto-approve -var="instance_state=running" -lock-timeout=5m
+	TF_VAR_aws_region=$(AWS_REGION) terraform -chdir=infrastructure apply -auto-approve -var="instance_state=running" -lock-timeout=5m
 	@echo "✓ Instância EC2 iniciada"
 	@echo "IP do EC2: $$(AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=infrastructure output -raw ec2_ip)"
 
@@ -271,6 +271,36 @@ clean:
 clean-remote:
 	@echo "Limpando arquivos temporários no EC2..."
 	@$(MAKE) remote-exec CMD="rm -rf .terraform/ *.tfstate* .terraform.lock.hcl"
+
+.PHONY: reset
+reset:
+	@echo "⚠️  ATENÇÃO: Isso vai resetar TUDO para o estado inicial!"
+	@echo "Isso irá:"
+	@echo "  - Remover chaves SSH (~/.ssh/terraform-dev.pem*)"
+	@echo "  - Remover config.env"
+	@echo "  - Limpar arquivos do Terraform"
+	@echo ""
+	@read -p "Tem certeza? Digite 'yes' para confirmar: " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		echo "Removendo chaves SSH..."; \
+		rm -f ~/.ssh/terraform-dev.pem ~/.ssh/terraform-dev.pem.pub; \
+		echo "Removendo config.env..."; \
+		rm -f config.env; \
+		echo "Limpando arquivos do Terraform..."; \
+		rm -rf infrastructure/.terraform/; \
+		rm -f infrastructure/.terraform.lock.hcl; \
+		rm -f infrastructure/terraform.tfstate*; \
+		rm -f infrastructure/.terraform.tfstate.lock.info; \
+		echo ""; \
+		echo "✓ Reset completo!"; \
+		echo ""; \
+		echo "Próximos passos:"; \
+		echo "  1. make setup"; \
+		echo "  2. make configure"; \
+		echo "  3. make provision"; \
+	else \
+		echo "Reset cancelado."; \
+	fi
 
 # Status
 .PHONY: status
@@ -328,3 +358,4 @@ help:
 	@echo "  make status         - Mostra status do ambiente"
 	@echo "  make clean          - Limpa arquivos locais do Terraform"
 	@echo "  make clean-remote   - Limpa arquivos temporários no EC2"
+	@echo "  make reset          - Reset completo (SSH keys + config.env + Terraform)"
