@@ -1,0 +1,42 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+
+# SSH keys
+*.pem
+*.key
+
+# Configuração local
+config.env
+
+# Infraestrutura local
+infrastructure/.terraform/
+infrastructure/*.tfstate*
+infrastructure/.terraform.lock.hcl
+infrastructure/*.tfplan
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Terraform test temporary files
+tests/*.tfstate
+tests/*.tfstate.*
+tests/.terraform/
+tests/.terraform.lock.hcl
+
+# Test output files
+tests/*.log
+tests/*.backup

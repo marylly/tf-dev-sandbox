@@ -1,0 +1,199 @@
+# AI Rules - Terraform Dev Sandbox
+
+## Contexto do Projeto
+Este é um repositório genérico e reutilizável para criar ambientes de desenvolvimento Terraform com sincronização automática para EC2. O objetivo é permitir desenvolvimento local de módulos Terraform quando as APIs dos providers estão bloqueadas, executando testes remotamente no EC2.
+
+## Arquitetura
+- Repositório separado do módulo sendo desenvolvido
+- Configuração via `config.env` aponta para módulo externo
+- Sincronização automática (rsync + fswatch) do módulo para EC2
+- `.terraform/` existe apenas no EC2, nunca localmente
+
+## Ciclo TDD para Execução de Tarefas
+
+Quando a IA estiver executando tarefas de desenvolvimento, DEVE seguir este ciclo TDD rigorosamente:
+
+### 1. Executar Testes Regressivos (Red)
+- Antes de qualquer mudança, executar TODOS os testes existentes
+- Comando: `make test` ou `terraform test` (conforme aplicável)
+- Garantir que todos os testes estão passando antes de começar
+- Se algum teste falhar, corrigir antes de prosseguir
+
+### 2. Adicionar Teste Sem Implementação (Red)
+- Escrever o teste unitário/integração PRIMEIRO
+- O teste deve falhar (Red) porque a funcionalidade ainda não existe
+- Executar o teste e confirmar que falha pelo motivo esperado
+- Comando: `make test` ou `terraform test`
+
+### 3. Implementar Código Mínimo (Green)
+- Escrever o código MÍNIMO necessário para fazer o teste passar
+- Não adicionar funcionalidades extras
+- Executar o teste e confirmar que passa (Green)
+- Comando: `make test` ou `terraform test`
+
+### 4. Refatorar (Refactor)
+- Revisar o código implementado
+- Simplificar, remover duplicação, melhorar legibilidade
+- Manter os testes passando durante a refatoração
+- Executar testes após cada mudança
+
+### 5. Executar Todos os Testes Regressivos (Green)
+- Executar TODOS os testes do projeto
+- Garantir que nenhum teste existente foi quebrado
+- Comando: `make test` ou `terraform test`
+- Só considerar a tarefa completa quando todos os testes passarem
+
+### Comandos de Teste
+- `make test`: Executar testes do módulo localmente (pode falhar no macOS com timeout)
+- `make remote-test`: Executar testes do módulo no EC2 (recomendado)
+- `terraform test`: Executar testes tftest diretamente
+- `make remote-check`: Pipeline completo (fmt, validate, lint, tfsec, test)
+
+**Nota sobre testes locais no macOS**:
+- `make test` pode falhar com "timeout while waiting for plugin to start"
+- Causa: Problemas na cadeia de credenciais AWS (credential chain issues)
+- Solução: Use `make remote-test` - funciona porque o EC2 tem IAM role anexado
+- Testes locais requerem AWS_PROFILE configurado corretamente
+
+### Regras do Ciclo TDD
+- NUNCA pular a etapa de escrever o teste primeiro
+- NUNCA implementar funcionalidades sem testes
+- SEMPRE executar testes regressivos antes e depois
+- SEMPRE refatorar quando o código puder ser simplificado
+- SEMPRE confirmar que todos os testes passam antes de concluir
+
+## Regras de Código
+
+### Terraform
+- Um arquivo `.tf` por recurso (não usar `main.tf` monolítico)
+- Nomenclatura: `vpc.tf`, `ec2.tf`, `iam.tf`, `security-group.tf`, etc
+- Sempre incluir `versions.tf` com versões de providers
+- Usar `terraform.tfvars.example` para exemplos de variáveis
+- Criar testes tftest em `tests/` para validar infraestrutura
+
+### Makefile
+- Todos os targets devem usar `.PHONY`
+- Mensagens claras de erro e sucesso
+- Validar pré-condições (EC2 provisionado, config.env existe, etc)
+- Incluir help detalhado
+- Incluir target `test` para executar testes
+
+### Bash Scripts
+- Sempre validar erros (`set -e` ou verificações explícitas)
+- Mensagens claras de progresso
+- Validar pré-requisitos antes de executar
+
+### Documentação
+- README.md: Minimalista, quick start em 5 passos
+- docs/: Documentação detalhada e completa
+- Comentários em código apenas quando necessário
+
+### Clean Code - Comentários
+- **Evite comentários**: Código deve ser auto-explicativo
+- **Use nomes descritivos**: Variáveis, funções e recursos com nomes claros
+- **Comentários permitidos**:
+  - Explicar "por que" (não "o que" ou "como")
+  - Avisos sobre comportamentos não óbvios
+  - TODOs temporários (com contexto)
+  - Documentação de APIs públicas
+- **Comentários proibidos**:
+  - Código comentado (delete!)
+  - Comentários óbvios que repetem o código
+  - Comentários desatualizados ou incorretos
+  - Histórico de mudanças (use git!)
+
+**Exemplo ruim**:
+```hcl
+# Cria uma VPC
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"  # Define o CIDR block
+}
+```
+
+**Exemplo bom**:
+```hcl
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  
+  # DNS necessário para resolução de nomes do EC2
+  enable_dns_hostnames = true
+}
+```
+
+## Padrões de Nomenclatura
+- Arquivos: kebab-case (`security-group.tf`, `user-data.sh`)
+- Variáveis Terraform: snake_case (`instance_type`, `vpc_cidr`)
+- Targets Makefile: kebab-case (`remote-check`, `remote-shell`)
+- Variáveis ambiente: UPPER_SNAKE_CASE (`MODULE_PATH`, `EC2_IP`)
+- Testes tftest: `tests/*.tftest.hcl`
+
+## Estrutura de Commits
+- feat: Nova funcionalidade
+- fix: Correção de bug
+- docs: Mudanças em documentação
+- refactor: Refatoração de código
+- test: Adição ou modificação de testes
+- chore: Tarefas de manutenção
+
+## Não Fazer
+- Não usar AWS Secrets Manager ou Parameter Store (manter simples)
+- Não usar CloudTrail (manter simples)
+- Não criar `.terraform/` localmente
+- Não commitar `config.env` (apenas `config.env.example`)
+- Não usar `main.tf` monolítico
+- Não implementar código sem testes
+- Não pular o ciclo TDD
+
+## Prioridades
+1. Testes primeiro (TDD)
+2. Simplicidade sobre complexidade
+3. Configurabilidade (trocar de módulo facilmente)
+4. Documentação clara e concisa
+5. Comandos intuitivos via Makefile
+
+## Memory Bank
+Consulte `.ai/memory/codebase.md` para contexto completo do repositório.
+
+## Atualização de Documentação e Memory Bank
+
+Após completar QUALQUER tarefa de desenvolvimento (feature, fix, refactor), a IA DEVE:
+
+1. **Atualizar Documentação Relevante**:
+   - Se mudou Makefile: atualizar `README.md`, `docs/USAGE.md`, `.ai/memory/codebase.md`
+   - Se mudou infraestrutura: atualizar `docs/ARCHITECTURE.md`, `.ai/memory/codebase.md`
+   - Se mudou testes: atualizar `docs/TESTING.md`, `.ai/memory/codebase.md`
+   - Se mudou config.env: atualizar `docs/SETUP.md`, `.ai/memory/codebase.md`
+   - Se mudou user-data.sh: atualizar `docs/ARCHITECTURE.md`, `.ai/memory/codebase.md`
+
+2. **Atualizar Memory Bank** (`.ai/memory/codebase.md`):
+   - Adicionar novos comandos do Makefile na seção "Commands Reference"
+   - Adicionar novas variáveis de ambiente na seção "Configuration"
+   - Adicionar novos arquivos .tf na seção "Key Files"
+   - Atualizar workflows se o processo mudou
+   - Adicionar troubleshooting para novos problemas encontrados
+   - Atualizar design decisions se houver novas decisões arquiteturais
+
+3. **Validar e Atualizar Testes**:
+   - SEMPRE verificar se os testes precisam ser atualizados após mudanças
+   - Exemplos de mudanças que requerem atualização de testes:
+     - Mudança de valores (instance_type, CIDR, nomes de recursos)
+     - Adição/remoção de recursos
+     - Mudança de comportamento
+   - Executar `make test` para validar que todos os testes passam
+   - Refatorar testes se necessário para manter consistência
+
+4. **Verificar Consistência**:
+   - Todos os comandos do Makefile estão documentados?
+   - Todas as variáveis do config.env estão explicadas?
+   - Todos os arquivos .tf estão listados?
+   - Os exemplos de código estão atualizados?
+   - Os troubleshooting cobrem os problemas conhecidos?
+   - Os testes refletem o estado atual do código?
+
+5. **Momento da Atualização**:
+   - SEMPRE ao final de cada tarefa, antes de marcar como completa
+   - NUNCA deixar documentação desatualizada
+   - NUNCA deixar testes desatualizados
+   - NUNCA assumir que "é óbvio" - documentar explicitamente
+
+Esta regra garante que a documentação, testes e o memory bank estejam sempre sincronizados com o código.
