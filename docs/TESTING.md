@@ -967,6 +967,41 @@ cat config.env | grep MODULE_PATH
 ls -la $MODULE_PATH
 ```
 
+### 11.12 Erro: "timeout while waiting for plugin to start" (macOS)
+
+**Problema**: Testes locais falham com timeout no macOS
+
+**Causa**: `terraform test` cria múltiplos subprocessos, cada um precisa reinicializar a cadeia de credenciais AWS. No macOS, isso causa timeouts frequentes devido a:
+- Problemas na credential chain do AWS provider
+- Configuração de rede com IPv6 link-local
+- Memória insuficiente para múltiplos subprocessos
+
+**Por que `terraform apply` funciona mas `terraform test` não?**
+- `terraform apply`: Usa credenciais diretamente, processo único
+- `terraform test`: Cria subprocessos para cada teste, cada um reinicializa credenciais
+
+**Soluções**:
+
+1. **Use `make remote-test` (recomendado)**
+   ```bash
+   make remote-test
+   ```
+   Funciona porque o EC2 tem IAM role anexado (não precisa de credential chain).
+
+2. **Desabilitar IPv6 no macOS**
+   - System Settings → Network → Advanced → TCP/IP
+   - Configure IPv6: Off
+   - Reiniciar máquina
+
+3. **Usar variáveis de ambiente explícitas**
+   ```bash
+   AWS_ACCESS_KEY_ID=xxx AWS_SECRET_ACCESS_KEY=yyy make test
+   ```
+
+**Referências oficiais**:
+- [HashiCorp: Error timeout while waiting for plugin to start](https://support.hashicorp.com/hc/en-us/articles/18253685000083-Error-timeout-while-waiting-for-plugin-to-start)
+- [HashiCorp: Terraform Run Hanging on macOS](https://support.hashicorp.com/hc/en-us/articles/9790957264915-Terraform-Run-Hanging-or-Timing-out-and-Network-Connection-failure-MacOS)
+
 ## 12. Métricas de Testes
 
 ### 12.1 Cobertura de Testes

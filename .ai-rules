@@ -51,9 +51,11 @@ Quando a IA estiver executando tarefas de desenvolvimento, DEVE seguir este cicl
 
 **Nota sobre testes locais no macOS**:
 - `make test` pode falhar com "timeout while waiting for plugin to start"
-- Causa: Problemas na cadeia de credenciais AWS (credential chain issues)
+- Causa: `terraform test` cria subprocessos que precisam reinicializar credenciais AWS
+- No macOS, a credential chain causa timeouts nesses subprocessos
 - Solução: Use `make remote-test` - funciona porque o EC2 tem IAM role anexado
 - Testes locais requerem AWS_PROFILE configurado corretamente
+- Referências: [HashiCorp Support - timeout while waiting for plugin](https://support.hashicorp.com/hc/en-us/articles/18253685000083-Error-timeout-while-waiting-for-plugin-to-start)
 
 ### Regras do Ciclo TDD
 - NUNCA pular a etapa de escrever o teste primeiro

@@ -323,8 +323,13 @@ make remote-check    # Pipeline completo: sync→fmt→validate→lint→tfsec�
 **Limitações de Testes Locais**:
 - `make test` pode falhar no macOS com "timeout while waiting for plugin to start"
 - Causa: Problemas na cadeia de credenciais AWS (credential chain issues)
+- `terraform test` cria múltiplos subprocessos, cada um precisa reinicializar credenciais
+- No macOS, isso causa timeouts frequentes
 - Solução: Use `make remote-test` - funciona porque o EC2 tem IAM role anexado
 - Testes locais requerem AWS_PROFILE configurado corretamente
+- Referências oficiais:
+  - [HashiCorp: Error timeout while waiting for plugin to start](https://support.hashicorp.com/hc/en-us/articles/18253685000083-Error-timeout-while-waiting-for-plugin-to-start)
+  - [HashiCorp: Terraform Run Hanging on macOS](https://support.hashicorp.com/hc/en-us/articles/9790957264915-Terraform-Run-Hanging-or-Timing-out-and-Network-Connection-failure-MacOS)
 
 ### Utility Commands
 ```bash
@@ -436,9 +441,10 @@ run "test_name" {
 }
 
 # Erro: "timeout while waiting for plugin to start" (macOS)
-# Causa: Problemas na cadeia de credenciais AWS
+# Causa: terraform test cria subprocessos que reinicializam credenciais
 # Solução: Use make remote-test em vez de make test
-# Alternativa: Verificar AWS_PROFILE configurado corretamente
+# Alternativa: Desabilitar IPv6 no macOS ou usar variáveis de ambiente explícitas
+# Referência: https://support.hashicorp.com/hc/en-us/articles/18253685000083
 
 # Ver logs detalhados
 make remote-exec CMD="terraform test -verbose"

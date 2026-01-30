@@ -52,6 +52,8 @@ make destroy        # Destruir tudo
 
 **Nota sobre testes locais**: `make test` executa testes do módulo localmente, mas pode falhar no macOS com timeout devido a problemas na cadeia de credenciais AWS. Use `make remote-test` para executar testes no EC2 (funciona porque o EC2 tem IAM role anexado).
 
+**Por que isso acontece?** `terraform test` cria múltiplos subprocessos (um por teste), e cada um precisa reinicializar a cadeia de credenciais. No macOS, isso pode causar timeouts. Veja [documentação oficial da HashiCorp](https://support.hashicorp.com/hc/en-us/articles/18253685000083-Error-timeout-while-waiting-for-plugin-to-start) sobre o problema.
+
 ## Documentação
 
 Veja [docs/](docs/) para documentação completa:
