@@ -235,7 +235,7 @@ provision:
 	AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=infrastructure init
 	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_aws_region=$(AWS_REGION) terraform -chdir=infrastructure apply -auto-approve -var="my_ip=$(MY_IP)" -lock-timeout=5m -lock=false
 	@echo "✓ Infraestrutura provisionada"
-	@echo "IP do EC2: $(shell AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=infrastructure output -raw ec2_ip)"
+	@echo "IP do EC2: $$(AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=infrastructure output -raw ec2_ip)"
 
 .PHONY: stop
 stop:
@@ -248,7 +248,7 @@ start:
 	@echo "Iniciando instância EC2..."
 	@TF_VAR_aws_region=$(AWS_REGION) terraform -chdir=infrastructure apply -auto-approve -var="instance_state=running" -lock-timeout=5m
 	@echo "✓ Instância EC2 iniciada"
-	@echo "IP do EC2: $(shell AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=infrastructure output -raw ec2_ip)"
+	@echo "IP do EC2: $$(AWS_PROFILE=$(AWS_PROFILE) terraform -chdir=infrastructure output -raw ec2_ip)"
 
 .PHONY: destroy
 destroy:
